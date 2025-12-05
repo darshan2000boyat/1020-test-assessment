@@ -1,0 +1,473 @@
+"use client";
+
+import React, { useMemo, useState, useRef, useEffect } from "react";
+import {
+    createColumnHelper,
+    getCoreRowModel,
+    useReactTable,
+    flexRender,
+} from "@tanstack/react-table";
+import { Clock, Calendar, ChevronLeft, ChevronRight, Pencil, Ellipsis, Eye, Trash2, Plus, Filter, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import CreateTimesheetForm from "./CreateTimesheetForm";
+import { toast } from "react-toastify";
+import axios from "axios";
+
+interface Timesheet {
+    id: number;
+    documentId: string;
+    week: number;
+    year: number;
+    month: number;
+    startDate: string;
+    endDate: string;
+    totalHours: number;
+    workStatus: string;
+    dateRange: string;
+}
+
+export default function TimesheetsTable() {
+    const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const router = useRouter();
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const columnHelper = createColumnHelper<Timesheet>();
+
+    const [data, setData] = useState<Timesheet[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [pageIndex, setPageIndex] = useState(0);
+    const [totalCount, setTotalCount] = useState(0);
+    const [pageSize] = useState(5);
+    const [statusFilter, setStatusFilter] = useState<string>("ALL"); // "ALL", "COMPLETED", "INCOMPLETE", "MISSING"
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const filterDropdownRef = useRef<HTMLDivElement>(null);
+
+    const STRAPI_BASE_URL =
+        process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setOpenDropdownId(null);
+            }
+            if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+                setShowFilterDropdown(false);
+            }
+        };
+
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const fetchTimesheets = async () => {
+            setLoading(true);
+            
+            // Build the API URL with filters
+            let url = `${STRAPI_BASE_URL}/api/timesheets?fields=week,year,month,startDate,endDate,totalHours,workStatus,dateRange&sort=week:desc&pagination[page]=${pageIndex + 1}&pagination[pageSize]=${pageSize}`;
+            
+            // Add status filter if not "ALL"
+            if (statusFilter !== "ALL") {
+                url += `&filters[workStatus][$eq]=${statusFilter}`;
+            }
+            
+            try {
+                const res = await fetch(
+                    url,
+                    { cache: "no-store" }
+                );
+                const json = await res.json();
+                setData(json.data ?? []);
+                // Set total count from API response
+                setTotalCount(json.meta?.pagination?.total || 0);
+            } catch (error) {
+                console.error("Error loading timesheets:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTimesheets();
+    }, [STRAPI_BASE_URL, pageIndex, statusFilter]); // Added statusFilter as dependency
+
+    const handleAction = (action: string, timesheet: Timesheet) => {
+        setOpenDropdownId(null);
+
+        if (action === "View") router.push(`/timesheets/${timesheet?.week}/${timesheet?.year}`);
+        else if (action === "Delete") handleDelete(timesheet.documentId);
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "COMPLETED":
+                return "bg-emerald-100 text-emerald-700 border-emerald-200";
+            case "INCOMPLETE":
+                return "bg-amber-100 text-amber-700 border-amber-200";
+            case "MISSING":
+                return "bg-red-100 text-red-700 border-red-200";
+            default:
+                return "bg-gray-100 text-gray-700 border-gray-200";
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case "COMPLETED": return "Completed";
+            case "INCOMPLETE": return "Incomplete";
+            case "MISSING": return "Missing";
+            default: return status;
+        }
+    };
+
+    const handleDelete = async (timesheetId: string | number | null) => {
+        if (!confirm("Are you sure you want to delete this timesheet?") || timesheetId === null) {
+            return;
+        }
+
+        try {
+            const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+            await axios.delete(`${STRAPI_BASE_URL}/api/timesheets/${timesheetId}`);
+
+            // Remove from local state
+            setData(prev => prev.filter(item => item.documentId !== timesheetId));
+            setTotalCount(prev => prev - 1);
+
+            toast.success("Timesheet deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting timesheet:", error);
+            alert("Failed to delete timesheet. Please try again.");
+        }
+    };
+
+    const handleStatusFilter = (status: string) => {
+        setStatusFilter(status);
+        setPageIndex(0); // Reset to first page when filter changes
+        setShowFilterDropdown(false);
+    };
+
+    const clearFilter = () => {
+        setStatusFilter("ALL");
+        setPageIndex(0);
+    };
+
+    const columns = useMemo(
+        () => [
+            columnHelper.accessor("dateRange", {
+                header: "Date Range",
+                cell: (info) => (
+                    <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium text-gray-900">{info.getValue()}</span>
+                    </div>
+                ),
+            }),
+            columnHelper.accessor("week", {
+                header: "Week",
+                cell: (info) => <span className="text-gray-600">{info.getValue()}</span>,
+            }),
+            columnHelper.accessor("year", {
+                header: "Year",
+                cell: (info) => <span className="text-gray-600">{info.getValue()}</span>,
+            }),
+            columnHelper.accessor("totalHours", {
+                header: "Hours",
+                cell: (info) => (
+                    <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold text-gray-900">{info.getValue()}h</span>
+                    </div>
+                ),
+            }),
+            columnHelper.accessor("workStatus", {
+                header: "Status",
+                cell: (info) => (
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(info.getValue())}`}>
+                        {getStatusLabel(info.getValue())}
+                    </span>
+                ),
+            }),
+            columnHelper.display({
+                id: "actions",
+                header: "Actions",
+                cell: (info) => {
+                    const timesheet = info.row.original;
+                    const isOpen = openDropdownId === timesheet.id;
+
+                    return (
+                        <div className="relative" ref={isOpen ? dropdownRef : null}>
+                            <button
+                                onClick={() => { setOpenDropdownId(isOpen ? null : timesheet.id); }}
+                                className="cursor-pointer inline-flex items-center justify-center px-3 py-1 rounded-full hover:bg-gray-100 transition-colors"
+                            >
+                                <Ellipsis className="w-4 h-4 text-gray-600" />
+                            </button>
+
+                            {isOpen && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                    <div className="py-1">
+                                        <button
+                                            onClick={() => handleAction("View", timesheet)}
+                                            className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            View Details
+                                        </button>
+                                        <div className="border-t border-gray-100 my-1"></div>
+                                        <button
+                                            onClick={() => handleAction("Delete", timesheet)}
+                                            className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                },
+            }),
+        ],
+        [columnHelper, openDropdownId]
+    );
+
+    const table = useReactTable({
+        data: data.sort((a, b) => a.week - b.week),
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+    });
+
+    // Calculate pagination values
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const startItem = pageIndex * pageSize + 1;
+    const endItem = Math.min((pageIndex + 1) * pageSize, totalCount);
+
+    return (
+        <>
+            <div className="w-full max-w-9xl mx-auto p-6 debug-screens">
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                    {/* Header with Filter and Create Button */}
+                    <div className="px-6 py-5 border-b border-gray-200 bg-linear-to-r from-blue-50 to-indigo-50">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">Timesheets</h2>
+                                <p className="text-sm text-gray-600 mt-1">View and manage your submitted timesheets</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                {/* Filter Dropdown */}
+                                <div className="relative" ref={filterDropdownRef}>
+                                    <button
+                                        onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors shadow-sm ${statusFilter !== "ALL" ? "bg-blue-100 text-blue-700 border border-blue-300" : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"}`}
+                                    >
+                                        <Filter className="w-4 h-4" />
+                                        {statusFilter === "ALL" ? "Filter by Status" : getStatusLabel(statusFilter)}
+                                        {statusFilter !== "ALL" && (
+                                            <span
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    clearFilter();
+                                                }}
+                                                className="ml-1 text-gray-500 hover:text-gray-700"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </span>
+                                        )}
+                                    </button>
+                                    
+                                    {showFilterDropdown && (
+                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                                            <div className="py-2">
+                                                <div className="px-3 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Filter by Status
+                                                </div>
+                                                <button
+                                                    onClick={() => handleStatusFilter("ALL")}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${statusFilter === "ALL" ? "bg-blue-50 text-blue-700" : "text-gray-700"}`}
+                                                >
+                                                    <span>All Statuses</span>
+                                                    {statusFilter === "ALL" && (
+                                                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusFilter("COMPLETED")}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${statusFilter === "COMPLETED" ? "bg-emerald-50 text-emerald-700" : "text-gray-700"}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                                        <span>Completed</span>
+                                                    </div>
+                                                    {statusFilter === "COMPLETED" && (
+                                                        <div className="w-2 h-2 bg-emerald-600 rounded-full"></div>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusFilter("INCOMPLETE")}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${statusFilter === "INCOMPLETE" ? "bg-amber-50 text-amber-700" : "text-gray-700"}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                                        <span>Incomplete</span>
+                                                    </div>
+                                                    {statusFilter === "INCOMPLETE" && (
+                                                        <div className="w-2 h-2 bg-amber-600 rounded-full"></div>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleStatusFilter("MISSING")}
+                                                    className={`w-full flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${statusFilter === "MISSING" ? "bg-red-50 text-red-700" : "text-gray-700"}`}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                        <span>Missing</span>
+                                                    </div>
+                                                    {statusFilter === "MISSING" && (
+                                                        <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Create Button */}
+                                <button
+                                    onClick={() => setShowCreateModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Create New Timesheet
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Active Filter Indicator */}
+                        {statusFilter !== "ALL" && (
+                            <div className="mt-3 flex items-center gap-2">
+                                <span className="text-sm text-gray-600">Active filter:</span>
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${getStatusColor(statusFilter)}`}>
+                                    {getStatusLabel(statusFilter)}
+                                    <button
+                                        onClick={clearFilter}
+                                        className="ml-1 text-gray-500 hover:text-gray-700"
+                                    >
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {loading ? (
+                        <div className="p-8 text-center">
+                            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                            <p className="mt-2 text-gray-600">Loading timesheets...</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead>
+                                        {table.getHeaderGroups().map((headerGroup) => (
+                                            <tr key={headerGroup.id} className="border-b border-gray-200 bg-gray-50">
+                                                {headerGroup.headers.map((header) => (
+                                                    <th
+                                                        key={header.id}
+                                                        className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                                                    >
+                                                        {header.isPlaceholder
+                                                            ? null
+                                                            : flexRender(header.column.columnDef.header, header.getContext())}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {table.getRowModel().rows.length > 0 ? (
+                                            table.getRowModel().rows.map((row) => (
+                                                <tr
+                                                    key={row.id}
+                                                    className="hover:bg-gray-50 transition-colors duration-150"
+                                                >
+                                                    {row.getVisibleCells().map((cell) => (
+                                                        <td
+                                                            key={cell.id}
+                                                            className="px-6 py-4"
+                                                        >
+                                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={columns.length} className="px-6 py-12 text-center">
+                                                    <div className="text-gray-400">
+                                                        <Calendar className="w-12 h-12 mx-auto mb-3" />
+                                                        <p className="text-gray-600 font-medium">No timesheets found</p>
+                                                        <p className="text-sm text-gray-500 mt-1">
+                                                            {statusFilter !== "ALL" 
+                                                                ? `No timesheets with status "${getStatusLabel(statusFilter)}"`
+                                                                : "No timesheets available. Create your first timesheet!"}
+                                                        </p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                                <div className="text-sm text-gray-600">
+                                    Showing <span className="font-medium">{startItem}</span> to{" "}
+                                    <span className="font-medium">{endItem}</span>{" "}
+                                    of <span className="font-medium">{totalCount}</span> entries
+                                    {statusFilter !== "ALL" && (
+                                        <span className="ml-2 text-blue-600">
+                                            (Filtered by: {getStatusLabel(statusFilter)})
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        onClick={() => setPageIndex((old) => Math.max(old - 1, 0))}
+                                        disabled={pageIndex === 0}
+                                    >
+                                        <ChevronLeft /> Previous
+                                    </button>
+
+                                    <div className="px-4 py-2 text-sm font-medium text-gray-700">
+                                        Page {pageIndex + 1} of {totalPages || 1}
+                                    </div>
+
+                                    <button
+                                        className="flex items-center gap-1 px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                                        onClick={() => setPageIndex((old) => old + 1)}
+                                        disabled={pageIndex + 1 >= totalPages}
+                                    >
+                                        Next <ChevronRight />
+                                    </button>
+
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+
+            {showCreateModal && (
+                <CreateTimesheetForm
+                    setIsCreating={setIsCreating}
+                    setShowCreateModal={setShowCreateModal}
+                    isCreating={isCreating}
+                />
+            )}
+        </>
+    );
+}
