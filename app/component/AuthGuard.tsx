@@ -1,4 +1,3 @@
-// components/AuthGuardServer.tsx
 import { ReactNode } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";

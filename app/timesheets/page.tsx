@@ -15,7 +15,7 @@ const Timesheets = async () => {
   if(!jwt) return redirect("/auth/login");
 
   return (
-    <div className='min-h-[calc(100vh-4rem)] justify-center'>
+    <div className='max-w-[1920px] mx-auto min-h-[calc(100vh-4rem)] justify-center'>
         <TimesheetsTable />
     </div>
   )

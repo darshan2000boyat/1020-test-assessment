@@ -24,32 +24,32 @@ export default function StrapiLogin() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const STRAPI_URL =
-    process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
   const handleSubmit = async (values: LoginValues, { setSubmitting }: { setSubmitting: (val: boolean) => void; }) => {
     setError("");
     try {
-      const response = await axios.post(`${STRAPI_URL}/api/auth/local`, values);
+      await axios.post("/api/auth/login", values, { withCredentials: true });
+      // const response = await axios.post("/api/auth/login", values, { withCredentials: true });
+;
 
-      const { jwt, user } = response.data;
+      // const { jwt, user } = response.data;
 
 
-      setCookie("jwt", jwt, {
-        maxAge: 60 * 60 * 24 * 7,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-      });
+      // setCookie("jwt", jwt, {
+      //   maxAge: 60 * 60 * 24 * 7,
+      //   secure: process.env.NODE_ENV === "production",
+      //   sameSite: "strict",
+      //   path: "/",
+      // });
 
-      const { id, documentId, ...cleanedUser } = user;
+      // const { id, documentId, ...cleanedUser } = user;
 
-      setCookie("user", JSON.stringify(cleanedUser), {
-        maxAge: 60 * 60 * 24 * 7,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        path: "/",
-      });
+      // setCookie("user", JSON.stringify(cleanedUser), {
+      //   maxAge: 60 * 60 * 24 * 7,
+      //   secure: process.env.NODE_ENV === "production",
+      //   sameSite: "strict",
+      //   path: "/",
+      // });
 
 
       router.push("/timesheets");

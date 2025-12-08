@@ -39,14 +39,14 @@ export default function TimesheetsTable() {
     const [pageIndex, setPageIndex] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [pageSize] = useState(5);
-    const [statusFilter, setStatusFilter] = useState<string>("ALL"); // "ALL", "COMPLETED", "INCOMPLETE", "MISSING"
+    const [statusFilter, setStatusFilter] = useState<string>("ALL");
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const filterDropdownRef = useRef<HTMLDivElement>(null);
 
     const STRAPI_BASE_URL =
         process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
-    // Close dropdown when clicking outside
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -65,10 +65,10 @@ export default function TimesheetsTable() {
         const fetchTimesheets = async () => {
             setLoading(true);
 
-            // Build the API URL with filters
+
             let url = `${STRAPI_BASE_URL}/api/timesheets?fields=week,year,month,startDate,endDate,totalHours,workStatus,dateRange&sort=week:desc&pagination[page]=${pageIndex + 1}&pagination[pageSize]=${pageSize}`;
 
-            // Add status filter if not "ALL"
+
             if (statusFilter !== "ALL") {
                 url += `&filters[workStatus][$eq]=${statusFilter}`;
             }
@@ -129,7 +129,7 @@ export default function TimesheetsTable() {
             const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
             await axios.delete(`${STRAPI_BASE_URL}/api/timesheets/${timesheetId}`);
 
-            // Remove from local state
+
             setData(prev => prev.filter(item => item.documentId !== timesheetId));
             setTotalCount(prev => prev - 1);
 
@@ -142,7 +142,7 @@ export default function TimesheetsTable() {
 
     const handleStatusFilter = (status: string) => {
         setStatusFilter(status);
-        setPageIndex(0); // Reset to first page when filter changes
+        setPageIndex(0);
         setShowFilterDropdown(false);
     };
 
@@ -239,7 +239,7 @@ export default function TimesheetsTable() {
         getCoreRowModel: getCoreRowModel(),
     });
 
-    // Calculate pagination values
+
     const totalPages = Math.ceil(totalCount / pageSize);
     const startItem = pageIndex * pageSize + 1;
     const endItem = Math.min((pageIndex + 1) * pageSize, totalCount);
