@@ -32,3 +32,7 @@ body {
     @apply w-full mx-auto px-4 sm:px-6 lg:px-8;
   }
 }
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(34%) sepia(88%) saturate(500%) hue-rotate(190deg);
+}

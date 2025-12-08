@@ -64,15 +64,15 @@ export default function TimesheetsTable() {
     useEffect(() => {
         const fetchTimesheets = async () => {
             setLoading(true);
-            
+
             // Build the API URL with filters
             let url = `${STRAPI_BASE_URL}/api/timesheets?fields=week,year,month,startDate,endDate,totalHours,workStatus,dateRange&sort=week:desc&pagination[page]=${pageIndex + 1}&pagination[pageSize]=${pageSize}`;
-            
+
             // Add status filter if not "ALL"
             if (statusFilter !== "ALL") {
                 url += `&filters[workStatus][$eq]=${statusFilter}`;
             }
-            
+
             try {
                 const res = await fetch(
                     url,
@@ -80,16 +80,16 @@ export default function TimesheetsTable() {
                 );
                 const json = await res.json();
                 setData(json.data ?? []);
-                // Set total count from API response
+
                 setTotalCount(json.meta?.pagination?.total || 0);
             } catch (error) {
-                console.error("Error loading timesheets:", error);
+                toast.error("Failed to fetch timesheets!!");
             } finally {
                 setLoading(false);
             }
         };
         fetchTimesheets();
-    }, [STRAPI_BASE_URL, pageIndex, statusFilter]); // Added statusFilter as dependency
+    }, [STRAPI_BASE_URL, pageIndex, statusFilter]);
 
     const handleAction = (action: string, timesheet: Timesheet) => {
         setOpenDropdownId(null);
@@ -136,7 +136,7 @@ export default function TimesheetsTable() {
             toast.success("Timesheet deleted successfully!");
         } catch (error) {
             console.error("Error deleting timesheet:", error);
-            alert("Failed to delete timesheet. Please try again.");
+            toast.error("Failed to delete timesheet. Please try again.");
         }
     };
 
@@ -204,7 +204,8 @@ export default function TimesheetsTable() {
                             </button>
 
                             {isOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                <div className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200">
+
                                     <div className="py-1">
                                         <button
                                             onClick={() => handleAction("View", timesheet)}
@@ -247,7 +248,7 @@ export default function TimesheetsTable() {
         <>
             <div className="w-full max-w-9xl mx-auto p-6 debug-screens">
                 <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
-                    {/* Header with Filter and Create Button */}
+
                     <div className="px-6 py-5 border-b border-gray-200 bg-linear-to-r from-blue-50 to-indigo-50">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
@@ -255,7 +256,7 @@ export default function TimesheetsTable() {
                                 <p className="text-sm text-gray-600 mt-1">View and manage your submitted timesheets</p>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-3">
-                                {/* Filter Dropdown */}
+
                                 <div className="relative" ref={filterDropdownRef}>
                                     <button
                                         onClick={() => setShowFilterDropdown(!showFilterDropdown)}
@@ -275,7 +276,7 @@ export default function TimesheetsTable() {
                                             </span>
                                         )}
                                     </button>
-                                    
+
                                     {showFilterDropdown && (
                                         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
                                             <div className="py-2">
@@ -331,8 +332,8 @@ export default function TimesheetsTable() {
                                         </div>
                                     )}
                                 </div>
-                                
-                                {/* Create Button */}
+
+
                                 <button
                                     onClick={() => setShowCreateModal(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -342,8 +343,8 @@ export default function TimesheetsTable() {
                                 </button>
                             </div>
                         </div>
-                        
-                        {/* Active Filter Indicator */}
+
+
                         {statusFilter !== "ALL" && (
                             <div className="mt-3 flex items-center gap-2">
                                 <span className="text-sm text-gray-600">Active filter:</span>
@@ -368,7 +369,7 @@ export default function TimesheetsTable() {
                     ) : (
                         <>
                             <div className="overflow-x-auto">
-                                <table className="w-full">
+                                <table className="w-full h-auto">
                                     <thead>
                                         {table.getHeaderGroups().map((headerGroup) => (
                                             <tr key={headerGroup.id} className="border-b border-gray-200 bg-gray-50">
@@ -409,7 +410,7 @@ export default function TimesheetsTable() {
                                                         <Calendar className="w-12 h-12 mx-auto mb-3" />
                                                         <p className="text-gray-600 font-medium">No timesheets found</p>
                                                         <p className="text-sm text-gray-500 mt-1">
-                                                            {statusFilter !== "ALL" 
+                                                            {statusFilter !== "ALL"
                                                                 ? `No timesheets with status "${getStatusLabel(statusFilter)}"`
                                                                 : "No timesheets available. Create your first timesheet!"}
                                                         </p>

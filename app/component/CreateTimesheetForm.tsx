@@ -84,36 +84,6 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
 
 
     useEffect(() => {
-        const fetchTasks = async () => {
-            setLoadingTasks(true);
-            try {
-                const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
-                const response = await fetch(`${STRAPI_BASE_URL}/api/tasks`);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    setTasks(result.data || []);
-                }
-            } catch (error) {
-                console.error("Error fetching tasks:", error);
-            } finally {
-                setLoadingTasks(false);
-            }
-        };
-
-        fetchTasks();
-    }, []);
-
-
-    useEffect(() => {
-        const today = new Date();
-        const { start, end } = getWeekDateRange(today);
-        formik.setFieldValue('startDate', formatDate(start));
-        formik.setFieldValue('endDate', formatDate(end));
-    }, []);
-
-
-    useEffect(() => {
         if (formik.values.startDate && formik.values.endDate) {
             const startDate = new Date(formik.values.startDate);
             const endDate = new Date(formik.values.endDate);
@@ -166,11 +136,11 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
             } else {
                 const error = await response.json();
                 console.error('API Error:', error);
-                throw new Error(error?.error?.message || 'Failed to create timesheet');
+                toast.error(error?.error?.message || 'Failed to create timesheet');
             }
         } catch (error) {
             console.error("Error creating timesheet:", error);
-            alert("Failed to create timesheet. Please try again.");
+            toast.error("Failed to create timesheet. Please try again.");
         } finally {
             setIsCreating(false);
         }
@@ -218,11 +188,12 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
                                         value={formik.values.startDate}
                                         onChange={handleStartDateChange}
                                         onBlur={formik.handleBlur}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formik.touched.startDate && formik.errors.startDate
+                                        className={`date-input w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formik.touched.startDate && formik.errors.startDate
                                                 ? "border-red-500"
                                                 : "border-gray-300"
                                             }`}
                                     />
+
                                     {formik.touched.startDate && formik.errors.startDate && (
                                         <p className="mt-1 text-sm text-red-600">{formik.errors.startDate}</p>
                                     )}
@@ -239,9 +210,9 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
                                         value={formik.values.endDate}
                                         onChange={formik.handleChange}
                                         onBlur={formik.handleBlur}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formik.touched.endDate && formik.errors.endDate
-                                                ? "border-red-500"
-                                                : "border-gray-300"
+                                        className={`date-input w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formik.touched.endDate && formik.errors.endDate
+                                            ? "border-red-500"
+                                            : "border-gray-300"
                                             }`}
                                     />
                                     {formik.touched.endDate && formik.errors.endDate && (

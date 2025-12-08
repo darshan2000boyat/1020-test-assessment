@@ -1,6 +1,7 @@
 import Navbar from '@/app/component/Navbar';
 import TimesheetDetails from '@/app/component/TimesheetDetails';
 import { Task, TimesheetData } from '@/types/timesheet';
+import { toast } from 'react-toastify';
 
 interface PageProps {
     params: {
@@ -21,7 +22,7 @@ export default async function TimesheetDetailsPage({ params }: PageProps) {
         const response = await fetch(url, { cache: "no-store" });
 
         if (!response.ok) {
-            throw new Error("Failed to fetch timesheet");
+            toast.error("Failed to fetch timesheet");
         }
 
         const result = await response.json();

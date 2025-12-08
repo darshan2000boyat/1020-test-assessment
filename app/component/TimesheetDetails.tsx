@@ -123,7 +123,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             }
         } catch (error) {
             console.error("Error creating task:", error);
-            alert("Failed to create task. Please try again.");
+            toast.error("Failed to create task. Please try again.");
         }
     };
 
@@ -178,7 +178,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             }
         } catch (error) {
             console.error("Error updating task:", error);
-            alert("Failed to update task. Please try again.");
+            toast.error("Failed to update task. Please try again.");
         }
     };
 
@@ -260,7 +260,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             toast.success("Task deleted successfully!");
         } catch (error) {
             console.error("Error deleting task:", error);
-            alert("Failed to delete task. Please try again.");
+            toast.error("Failed to delete task. Please try again.");
         }
     };
 
