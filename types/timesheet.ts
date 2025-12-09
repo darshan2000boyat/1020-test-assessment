@@ -58,11 +58,12 @@ export interface TaskEditFormProps {
   formik: FormikProps<TaskFormValues>;
   isEditing: boolean;
   selectedTask: Task | null;
+  timesheetId: string;
   formatDateForInput: (dateString: string) => string;
   formatDate: (dateString: string) => string;
   getWorkTypeLabel: (type: string) => string;
   getWorkTypeColor: (type: string) => string;
-  onDelete: (id: string | number) => void;
+  onDelete: (timesheetId: string | number, id: string | number) => void;
   isCreating: boolean;
 }
 

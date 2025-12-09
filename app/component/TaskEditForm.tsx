@@ -12,6 +12,7 @@ const TaskEditForm = ({
   getWorkTypeColor,
   getWorkTypeLabel,
   onDelete,
+  timesheetId,
   isCreating = false 
 }: TaskEditFormProps & { isCreating?: boolean }) => {
 
@@ -33,7 +34,7 @@ const TaskEditForm = ({
     const handleDeleteConfirm = async () => {
         setIsDeleting(true);
         try {
-            await onDelete(selectedTask?.documentId || "");
+            await onDelete(timesheetId, selectedTask?.documentId || "");
             setShowDeleteConfirm(false);
         } catch (error) {
             console.error('Delete failed:', error);

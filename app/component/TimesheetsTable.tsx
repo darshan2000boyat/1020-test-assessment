@@ -7,7 +7,7 @@ import {
     useReactTable,
     flexRender,
 } from "@tanstack/react-table";
-import { Clock, Calendar, ChevronLeft, ChevronRight, Ellipsis, Eye, Trash2, Plus, Filter, X } from "lucide-react";
+import { Clock, Calendar, ChevronLeft, ChevronRight, Ellipsis, Eye, Trash2} from "lucide-react";
 import { useRouter } from "next/navigation";
 import CreateTimesheetForm from "./CreateTimesheetForm";
 import { toast } from "react-toastify";

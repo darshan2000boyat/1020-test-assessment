@@ -83,30 +83,28 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
 
             const taskResponse = await axios.post(`${STRAPI_BASE_URL}/api/tasks`, taskData);
 
-            if (taskResponse.data && taskResponse.data.data) {
+            if (taskResponse.data && taskResponse.data.data && data && data.documentId) {
                 const newTask = taskResponse.data.data;
                 const taskId = newTask.documentId;
                 const newTotalHours = totalHours + values.hours;
                 const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
 
 
-                if (data && data.documentId) {
-                    try {
+                try {
 
-                        const currentTaskIds = tasks.map(task => task.documentId);
-                        const updatedTaskIds = [...currentTaskIds, taskId];
+                    const currentTaskIds = tasks.map(task => task.documentId);
+                    const updatedTaskIds = [...currentTaskIds, taskId];
 
-                        await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${data.documentId}`, {
-                            data: {
-                                tasks: updatedTaskIds,
-                                totalHours: newTotalHours,
-                                workStatus: newWorkStatus
-                            }
-                        });
-                    } catch (updateError) {
-                        console.error("Error updating timesheet relation:", updateError);
+                    await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${data.documentId}`, {
+                        data: {
+                            tasks: updatedTaskIds,
+                            totalHours: newTotalHours,
+                            workStatus: newWorkStatus
+                        }
+                    });
+                } catch (updateError) {
+                    console.error("Error updating timesheet relation:", updateError);
 
-                    }
                 }
 
 
@@ -225,10 +223,10 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         formik.resetForm();
     };
 
-    const handleDelete = async (taskId: string | number | null) => {
-        if (!confirm("Are you sure you want to delete this task?") && taskId === null) {
-            return;
-        }
+    const handleDelete = async (timesheetId: string | number | null, taskId: string | number | null) => {
+        // if (!confirm("Are you sure you want to delete this task?") && taskId === null) {
+        //     return;
+        // }
 
         try {
             const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
@@ -246,9 +244,24 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 const newTotalHours = totalHours - (taskToDelete.hours || 0);
                 setTotalHours(newTotalHours);
 
-
-                const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
+                const newWorkStatus = newTotalHours === 0 ? "MISSING" : newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
                 setWorkStatus(newWorkStatus);
+
+                try {
+
+
+
+                    await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${timesheetId}`, {
+                        data: {
+                            totalHours: newTotalHours,
+                            workStatus: newWorkStatus
+                        }
+                    });
+                } catch (updateError) {
+                    console.error("Error updating timesheet relation:", updateError);
+
+                }
+
             }
 
 
@@ -527,6 +540,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                                     getWorkTypeColor={getWorkTypeColor}
                                     getWorkTypeLabel={getWorkTypeLabel}
                                     onDelete={handleDelete}
+                                    timesheetId={data?.documentId}
                                     isCreating={isCreating}
                                 />
                             </div>
