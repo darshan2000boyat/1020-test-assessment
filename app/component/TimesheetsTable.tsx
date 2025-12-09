@@ -7,7 +7,7 @@ import {
     useReactTable,
     flexRender,
 } from "@tanstack/react-table";
-import { Clock, Calendar, ChevronLeft, ChevronRight, Ellipsis, Eye, Trash2} from "lucide-react";
+import { Clock, Calendar, ChevronLeft, ChevronRight, Ellipsis, Eye, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CreateTimesheetForm from "./CreateTimesheetForm";
 import { toast } from "react-toastify";
@@ -15,6 +15,7 @@ import axios from "axios";
 import { getStatusColor, getStatusLabel, transformTimesheetResData } from "@/utils/helper";
 import TableHeader from "./TableHeader";
 import { TimesheetStatus } from "@/types/timesheet";
+import Link from "next/link";
 
 interface Timesheet {
     id: number;
@@ -203,10 +204,12 @@ export default function TimesheetsTable() {
                 header: "Actions",
                 cell: (info) => {
                     const timesheet = info.row.original;
+                    const { week, year } = timesheet;
                     const isOpen = openDropdownId === timesheet.id;
 
                     return (
                         <div className="relative" ref={isOpen ? dropdownRef : null}>
+
                             <button
                                 onClick={() => { setOpenDropdownId(isOpen ? null : timesheet.id); }}
                                 className="cursor-pointer inline-flex items-center justify-center px-3 py-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -214,16 +217,19 @@ export default function TimesheetsTable() {
                                 <Ellipsis className="w-4 h-4 text-gray-600" />
                             </button>
 
+
                             {isOpen && (
                                 <div className="fixed z-50 bg-white rounded-lg shadow-lg border border-gray-200">
                                     <div className="py-1">
-                                        <button
-                                            onClick={() => handleAction("View", timesheet)}
-                                            className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                                        >
-                                            <Eye className="w-4 h-4" />
-                                            View Details
-                                        </button>
+                                        <Link href={`/timesheets/${week}/${year}`}>
+                                            <button
+                                                onClick={() => handleAction("View", timesheet)}
+                                                className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                                View Details
+                                            </button>
+                                        </Link>
                                         <div className="border-t border-gray-100 my-1"></div>
                                         <button
                                             onClick={() => handleAction("Delete", timesheet)}
