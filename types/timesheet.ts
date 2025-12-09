@@ -14,6 +14,22 @@ export interface Task {
   publishedAt: string;
 }
 
+export interface TimesheetResData {
+  id: number;
+  documentId: string;
+  timesheet_date: {
+    week: number;
+    year: number;
+    month: number;
+    startDate: string;
+    endDate: string;
+    dateRange: string;
+  },
+  totalHours: number;
+  workStatus: string;
+
+  tasks: Task[];
+}
 export interface TimesheetData {
   id: number;
   documentId: string;
@@ -65,4 +81,18 @@ export interface CreateTimesheetFormProps {
   setIsCreating: React.Dispatch<React.SetStateAction<boolean>>;
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
   isCreating: boolean;
+}
+
+
+export type TimesheetStatus = "ALL" | "COMPLETED" | "INCOMPLETE" | "MISSING";
+
+export interface TableHeaderProps {
+  showFilterDropdown: boolean;
+  setShowFilterDropdown: React.Dispatch<React.SetStateAction<boolean>>;
+
+  handleStatusFilter: (status: TimesheetStatus) => void;
+  clearFilter: () => void;
+
+  statusFilter: TimesheetStatus;
+  setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
 }

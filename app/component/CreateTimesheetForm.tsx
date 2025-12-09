@@ -52,15 +52,6 @@ const validationSchema = Yup.object({
         .required('End date is required')
         .min(Yup.ref('startDate'), 'End date must be after start date')
         .typeError('Please select a valid end date'),
-
-
-
-
-
-
-
-
-
 });
 
 const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: CreateTimesheetFormProps) => {
@@ -104,42 +95,47 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
             const month = startDate.getMonth() + 1;
             const dateRange = formatDateRange(startDate, endDate);
 
-            const timesheetData = {
-                data: {
-                    week,
-                    year,
-                    month,
-                    startDate: values.startDate,
-                    endDate: values.endDate,
-                    totalHours: 0,
-                    workStatus: "MISSING",
-                    dateRange,
-                    tasks: []
+            const timesheetRes = await fetch(`${STRAPI_BASE_URL}/api/timesheets?populate=timesheet_date&filters[timesheet_date][dateRange][$eq]=${dateRange}`)
+            const timesheet = await timesheetRes.json();
+
+            if (!(timesheet?.data || [])?.length) {
+                const timesheetData = {
+                    data: {
+                        totalHours: 0,
+                        workStatus: "MISSING",
+                        tasks: [],
+
+                        timesheet_date: {
+                            startDate: values.startDate,
+                            endDate: values.endDate,
+                        },
+                    },
+                };
+
+
+
+
+                console.log('Sending timesheet data:', timesheetData);
+                const response = await fetch(`${STRAPI_BASE_URL}/api/timesheets`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(timesheetData),
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    toast.success("Timesheet created successfully!");
+                    setShowCreateModal(false);
+                    // window.location.reload();
+                } else {
+                    const error = await response.json();
+                    console.error('API Error:', error);
+                    toast.error(error?.error?.message || 'Failed to create timesheet');
                 }
-            };
-
-            console.log('Sending timesheet data:', timesheetData);
-
-            const response = await fetch(`${STRAPI_BASE_URL}/api/timesheets`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(timesheetData),
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                toast.success("Timesheet created successfully!");
-                setShowCreateModal(false);
-                window.location.reload();
-            } else {
-                const error = await response.json();
-                console.error('API Error:', error);
-                toast.error(error?.error?.message || 'Failed to create timesheet');
-            }
+            } else toast.error("An entry with same date range already exist!!");
         } catch (error) {
-            console.error("Error creating timesheet:", error);
             toast.error("Failed to create timesheet. Please try again.");
         } finally {
             setIsCreating(false);
@@ -189,8 +185,8 @@ const CreateTimesheetForm = ({ setIsCreating, setShowCreateModal, isCreating }: 
                                         onChange={handleStartDateChange}
                                         onBlur={formik.handleBlur}
                                         className={`date-input w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formik.touched.startDate && formik.errors.startDate
-                                                ? "border-red-500"
-                                                : "border-gray-300"
+                                            ? "border-red-500"
+                                            : "border-gray-300"
                                             }`}
                                     />
 

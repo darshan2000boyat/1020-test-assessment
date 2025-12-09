@@ -30,6 +30,7 @@ export default function RootLayout({
       >
         {children}
         <ToastContainer
+          limit={1}
           position="bottom-center"
           autoClose={5000}
           hideProgressBar={false}
