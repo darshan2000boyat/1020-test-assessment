@@ -17,7 +17,7 @@ export default async function TimesheetDetailsPage({ params }: PageProps) {
     let data: TimesheetData | null = null;
     const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
     try {
-        const url = `${STRAPI_BASE_URL}/api/timesheets?populate=*&filters[week][$eq]=${week}&filters[year][$eq]=${year}&pagination[pageSize]=1`;
+        const url = `${STRAPI_BASE_URL}/api/timesheets?populate=*&filters[timesheet_date][week][$eq]=${week}&filters[timesheet_date][year][$eq]=${year}&pagination[pageSize]=1`;
 
         const response = await fetch(url, { cache: "no-store" });
 
