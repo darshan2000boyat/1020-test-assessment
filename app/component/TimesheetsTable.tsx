@@ -39,6 +39,7 @@ export default function TimesheetsTable() {
 
     const [data, setData] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSync, setIsSync] = useState(true);
     const [pageIndex, setPageIndex] = useState(0);
     const [totalCount, setTotalCount] = useState(0);
     const [pageSize] = useState(5);
@@ -64,7 +65,8 @@ export default function TimesheetsTable() {
                     console.log('Timesheet updated:', data.event);
 
                     setRefreshTrigger(prev => prev + 1);
-                    toast.info('Timesheet synchronized!');
+                    setIsSync(false)
+                    // toast.info('Timesheet synchronized!');
                 }
             } catch (error) {
                 console.error('SSE parse error:', error);
@@ -98,13 +100,9 @@ export default function TimesheetsTable() {
     useEffect(() => {
         const fetchTimesheets = async () => {
             setLoading(true);
+            setIsSync(true);
 
-            let url = `${STRAPI_BASE_URL}/api/timesheets?
-                        fields=totalHours,workStatus
-                        &populate[timesheet_date][fields]=startDate,endDate,week,month,year,dateRange
-                        &sort=timesheet_date.week:desc
-                        &pagination[page]=${pageIndex + 1}
-                        &pagination[pageSize]=${pageSize}`;
+            let url = `${STRAPI_BASE_URL}/api/timesheets?fields=totalHours,workStatus&populate[timesheet_date][fields]=startDate,endDate,week,month,year,dateRange&sort=timesheet_date.week:desc&pagination[page]=${pageIndex + 1}&pagination[pageSize]=${pageSize}`;
 
             if (statusFilter !== "ALL") {
                 url += `&filters[workStatus][$eq]=${statusFilter}`;
@@ -120,6 +118,7 @@ export default function TimesheetsTable() {
                 toast.error("Failed to fetch timesheets!!");
             } finally {
                 setLoading(false);
+                setIsSync(false)
             }
         };
         fetchTimesheets();
@@ -263,7 +262,7 @@ export default function TimesheetsTable() {
                         handleStatusFilter={handleStatusFilter}
                         setShowCreateModal={setShowCreateModal}
                         statusFilter={statusFilter as TimesheetStatus}
-                        clearFilter={clearFilter} ref={filterDropdownRef} />
+                        clearFilter={clearFilter} isSync={isSync} ref={filterDropdownRef} />
 
                     {loading ? (
                         <div className="p-8 text-center">

@@ -14,6 +14,7 @@ const TableHeader = forwardRef<
     setShowCreateModal,
     statusFilter,
     clearFilter,
+    isSync
   },
   filterDropdownRef
 ) {
@@ -21,7 +22,10 @@ const TableHeader = forwardRef<
         <div className="px-6 py-5 border-b border-gray-200 bg-linear-to-r from-blue-50 to-indigo-50">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Timesheets</h2>
+                    <div className="flex items-center gap-4">
+                        <h2 className="text-2xl font-bold text-gray-900">Timesheets</h2>
+                        <span className={`text-xs ${isSync ? "text-black/50" : "text-green-500"}`}><span className={`inline-block min-w-2 min-h-2 rounded-full ${isSync ? "bg-yellow-500 animate-pulse" : "bg-green-500" }`}></span> {isSync ? "Synchronizing..." : "Synchronized"}</span>
+                    </div>
                     <p className="text-sm text-gray-600 mt-1">View and manage your submitted timesheets</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">

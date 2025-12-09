@@ -88,6 +88,7 @@ export interface CreateTimesheetFormProps {
 export type TimesheetStatus = "ALL" | "COMPLETED" | "INCOMPLETE" | "MISSING";
 
 export interface TableHeaderProps {
+  isSync: boolean;
   showFilterDropdown: boolean;
   setShowFilterDropdown: React.Dispatch<React.SetStateAction<boolean>>;
 
