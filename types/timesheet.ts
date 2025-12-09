@@ -1,5 +1,13 @@
 import { FormikProps } from 'formik';
 
+export interface StrapiMedia {
+  id?: number;
+  name: string;
+  url: string;
+  mime?: string;
+  size?: number;
+}
+
 export interface Task {
   id: number;
   documentId: string;
@@ -9,6 +17,7 @@ export interface Task {
   date: string;
   typeOfWork: string;
   projects: string;
+  taskDocument?: StrapiMedia | null,
   createdAt: string;
   updatedAt: string;
   publishedAt: string;
@@ -44,14 +53,13 @@ export interface TimesheetData {
   tasks: Task[];
 }
 
-
-
 export interface TaskFormValues {
   title: string;
   date: string;
   hours: number;
   typeOfWork: string;
   projects: string;
+  taskDocument: StrapiMedia | null;
 }
 
 export interface TaskEditFormProps {
@@ -67,8 +75,6 @@ export interface TaskEditFormProps {
   isCreating: boolean;
 }
 
-
-
 export interface TimesheetFormState {
   title: string;
   description: string;
@@ -83,7 +89,6 @@ export interface CreateTimesheetFormProps {
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
   isCreating: boolean;
 }
-
 
 export type TimesheetStatus = "ALL" | "COMPLETED" | "INCOMPLETE" | "MISSING";
 

@@ -5,7 +5,7 @@ import { Calendar, Clock, ArrowLeft, Briefcase, FileText, CheckCircle2, AlertCir
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import TaskEditForm from "./TaskEditForm";
-import { Task, TimesheetData } from "@/types/timesheet";
+import { StrapiMedia, Task, TimesheetData } from "@/types/timesheet";
 import axios from "axios";
 import { toast } from "react-toastify";
 
@@ -58,6 +58,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             hours: 0,
             typeOfWork: "",
             projects: "",
+            taskDocument: null as StrapiMedia | null,
         },
         validationSchema: taskValidationSchema,
         enableReinitialize: false,
@@ -72,12 +73,47 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
 
     const handleCreateTask = async (values: any) => {
         try {
+            // console.log(values)
+            // return;
             const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
+            let uploadedFileId = null;
 
+            // Step 1: Upload file to Strapi if attachment exists
+            if (values.taskDocument && values.taskDocument instanceof File) {
+                const formData = new FormData();
+                formData.append('files', values.taskDocument);
+
+                try {
+                    const uploadResponse = await axios.post(
+                        `${STRAPI_BASE_URL}/api/upload`,
+                        formData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+
+                    if (uploadResponse.data && uploadResponse.data[0]) {
+                        uploadedFileId = uploadResponse.data[0].id;
+                    }
+                } catch (uploadError) {
+                    console.error("Error uploading file:", uploadError);
+                    toast.error("Failed to upload attachment. Please try again.");
+                    return;
+                }
+            }
+
+            // Step 2: Create task with the uploaded file ID
             const taskData = {
                 data: {
-                    ...values
+                    title: values.title,
+                    date: values.date,
+                    hours: values.hours,
+                    typeOfWork: values.typeOfWork,
+                    projects: values.projects,
+                    ...(uploadedFileId && { taskDocument: uploadedFileId }),
                 }
             };
 
@@ -89,9 +125,8 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 const newTotalHours = totalHours + values.hours;
                 const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
 
-
+                // Step 3: Update timesheet with new task relation
                 try {
-
                     const currentTaskIds = tasks.map(task => task.documentId);
                     const updatedTaskIds = [...currentTaskIds, taskId];
 
@@ -104,9 +139,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                     });
                 } catch (updateError) {
                     console.error("Error updating timesheet relation:", updateError);
-
                 }
-
 
                 const updatedTasks = [{ ...newTask, documentId: taskId }, ...tasks];
                 setTasks(updatedTasks);
@@ -125,25 +158,69 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
+    // Also update handleUpdateTask to handle file uploads
     const handleUpdateTask = async (values: any) => {
         if (!selectedTask) return;
 
         try {
             const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
+            let uploadedFileId = null;
+
+            // Step 1: Upload new file if changed
+            if (values.taskDocument && values.taskDocument instanceof File) {
+                const formData = new FormData();
+                formData.append('files', values.taskDocument);
+
+                try {
+                    const uploadResponse = await axios.post(
+                        `${STRAPI_BASE_URL}/api/upload`,
+                        formData,
+                        {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            },
+                        }
+                    );
+
+                    if (uploadResponse.data && uploadResponse.data[0]) {
+                        uploadedFileId = uploadResponse.data[0].id;
+                    }
+                } catch (uploadError) {
+                    console.error("Error uploading file:", uploadError);
+                    toast.error("Failed to upload attachment. Please try again.");
+                    return;
+                }
+            }
 
             const oldHours = selectedTask.hours || 0;
             const hourDifference = values.hours - oldHours;
             const newTotalHours = totalHours + hourDifference;
             const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
 
-            const response = await axios.put(`${STRAPI_BASE_URL}/api/tasks/${selectedTask?.documentId}`, {
-                data: values
-            });
+            // Step 2: Update task
+            const updateData = {
+                data: {
+                    title: values.title,
+                    date: values.date,
+                    hours: values.hours,
+                    typeOfWork: values.typeOfWork,
+                    projects: values.projects,
+                    ...(uploadedFileId && { taskDocument: uploadedFileId }),
+                    // If taskDocument was removed (null) and no new file uploaded
+                    ...(values.taskDocument === null && !uploadedFileId && { taskDocument: null }),
+                }
+            };
+
+            const response = await axios.put(
+                `${STRAPI_BASE_URL}/api/tasks/${selectedTask?.documentId}`,
+                updateData
+            );
 
             if (response.data && response.data.data) {
                 const updatedTask = response.data.data;
 
+                // Step 3: Update timesheet totals
                 await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${data?.documentId}`, {
                     data: {
                         totalHours: newTotalHours,
@@ -153,20 +230,13 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
 
                 const updatedTasks = tasks.map(task =>
                     task.documentId === selectedTask.documentId
-                        ? { ...updatedTask, documentId: updatedTask.id }
+                        ? { ...updatedTask, documentId: updatedTask.documentId }
                         : task
                 );
                 setTasks(updatedTasks);
 
-
-
-                setSelectedTask({ ...updatedTask, documentId: updatedTask.id });
-
-
-
+                setSelectedTask({ ...updatedTask, documentId: updatedTask.documentId });
                 setTotalHours(newTotalHours);
-
-
                 setWorkStatus(newWorkStatus);
 
                 setIsEditing(false);
@@ -188,6 +258,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 hours: selectedTask.hours,
                 typeOfWork: selectedTask.typeOfWork,
                 projects: selectedTask.projects,
+                taskDocument: selectedTask.taskDocument as StrapiMedia
             });
             setIsEditing(true);
             setIsCreating(false);
@@ -204,6 +275,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             hours: 8,
             typeOfWork: "",
             projects: "",
+            taskDocument: null
         });
     };
 
