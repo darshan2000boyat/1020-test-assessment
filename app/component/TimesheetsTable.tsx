@@ -122,7 +122,7 @@ export default function TimesheetsTable() {
             }
         };
         fetchTimesheets();
-    }, [STRAPI_BASE_URL, pageIndex, statusFilter, refreshTrigger]);
+    }, [STRAPI_BASE_URL, pageIndex, statusFilter, isCreating, refreshTrigger]);
 
     const handleAction = (action: string, timesheet: Timesheet) => {
         setOpenDropdownId(null);
