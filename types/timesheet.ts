@@ -1,11 +1,14 @@
 import { FormikProps } from 'formik';
 
 export interface StrapiMedia {
-  id?: number;
+  id: number;
+  documentId?: string;
   name: string;
   url: string;
   mime?: string;
   size?: number;
+  width?: number;
+  height?: number;
 }
 
 export interface Task {
@@ -59,7 +62,7 @@ export interface TaskFormValues {
   hours: number;
   typeOfWork: string;
   projects: string;
-  taskDocument: StrapiMedia | null;
+  taskDocument: File | StrapiMedia | null;
 }
 
 export interface TaskEditFormProps {
@@ -102,4 +105,21 @@ export interface TableHeaderProps {
 
   statusFilter: TimesheetStatus;
   setShowCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+
+// Add this interface to your existing types
+export interface TaskGroup {
+  date: string;
+  tasks: Task[];
+  totalHours: number;
+}
+
+export interface TaskFormValues {
+  title: string;
+  date: string;
+  hours: number;
+  typeOfWork: string;
+  projects: string;
+  taskDocument: File | StrapiMedia | null;
 }

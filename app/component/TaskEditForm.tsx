@@ -72,7 +72,7 @@ const TaskEditForm = ({
       {(selectedTask || isCreating) && (
         <form onSubmit={formik.handleSubmit}>
           <div className="space-y-6">
-            {/* Title */}
+            
             <div>
               <label className="text-sm text-gray-600 mb-2 block">Title</label>
               {shouldShowForm ? (
@@ -103,7 +103,7 @@ const TaskEditForm = ({
               )}
             </div>
 
-            {/* Date & Hours */}
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-gray-600 mb-2 block">Date</label>
@@ -116,7 +116,7 @@ const TaskEditForm = ({
                     }
                     onChange={formik.handleChange}
                     onBlur={formik.handleBlur}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    className={`date-input w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       formik.touched.date && formik.errors.date
                         ? "border-red-500"
                         : "border-gray-300"
@@ -155,7 +155,7 @@ const TaskEditForm = ({
               </div>
             </div>
 
-            {/* Work Type */}
+            
             <div>
               <label className="text-sm text-gray-600 mb-2 block">Work Type</label>
               {shouldShowForm ? (
@@ -189,7 +189,7 @@ const TaskEditForm = ({
               )}
             </div>
 
-            {/* Project */}
+            
             <div>
               <label className="text-sm text-gray-600 mb-2 block">Project</label>
               {shouldShowForm ? (
@@ -219,7 +219,7 @@ const TaskEditForm = ({
               )}
             </div>
 
-            {/* Task Attachment */}
+            
             <div className="relative">
               <label className="text-sm text-gray-600 mb-2 block">Attachment</label>
               {shouldShowForm && (
@@ -266,7 +266,7 @@ const TaskEditForm = ({
               )}
             </div>
 
-            {/* Delete Task */}
+            
             {!shouldShowForm && selectedTask && (
               <div className="pt-4 border-t border-gray-200">
                 <button

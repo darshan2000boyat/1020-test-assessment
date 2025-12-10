@@ -1,11 +1,21 @@
+// types/timesheet.ts - Add these interfaces to your types file
+
+// export interface TaskGroup {
+//   date: string;
+//   tasks: Task[];
+//   totalHours: number;
+// }
+
+// TimesheetDetails.tsx - Updated component with TypeScript
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, JSX } from "react";
 import { Calendar, Clock, ArrowLeft, Briefcase, FileText, CheckCircle2, AlertCircle, Loader2, Edit2, Save, X, Plus } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import TaskEditForm from "./TaskEditForm";
-import { StrapiMedia, Task, TimesheetData } from "@/types/timesheet";
+import { StrapiMedia, Task, TimesheetData, TaskGroup } from "@/types/timesheet";
 import axios from "axios";
 import { toast } from "react-toastify";
 
@@ -14,6 +24,15 @@ interface TimesheetDetailsProps {
     week: string;
     year: string;
     error: string | null;
+}
+
+interface TaskFormValues {
+    title: string;
+    date: string;
+    hours: number;
+    typeOfWork: string;
+    projects: string;
+    taskDocument: File | StrapiMedia | null;
 }
 
 const taskValidationSchema = Yup.object({
@@ -34,16 +53,15 @@ const taskValidationSchema = Yup.object({
         .required("Project is required"),
 });
 
-export default function TimesheetDetails({ data, week, year, error }: TimesheetDetailsProps) {
+export default function TimesheetDetails({ data, week, year, error }: TimesheetDetailsProps): JSX.Element {
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [isCreating, setIsCreating] = useState<boolean>(false);
     const [tasks, setTasks] = useState<Task[]>(data?.tasks || []);
-    const [totalHours, setTotalHours] = useState(data?.totalHours || 0);
-    const [workStatus, setWorkStatus] = useState(data?.workStatus || "INCOMPLETE");
+    const [totalHours, setTotalHours] = useState<number>(data?.totalHours || 0);
+    const [workStatus, setWorkStatus] = useState<string>(data?.workStatus || "INCOMPLETE");
 
-
-    React.useEffect(() => {
+    useEffect(() => {
         if (data) {
             setTasks(data.tasks || []);
             setTotalHours(data.totalHours || 0);
@@ -51,18 +69,41 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     }, [data]);
 
-    const formik = useFormik({
+    // Group tasks by date with proper TypeScript typing
+    const groupedTasks = useMemo<TaskGroup[]>(() => {
+        const groups: Record<string, TaskGroup> = {};
+
+        tasks.forEach((task: Task) => {
+            const dateKey: string = task.date;
+            if (!groups[dateKey]) {
+                groups[dateKey] = {
+                    date: dateKey,
+                    tasks: [],
+                    totalHours: 0
+                };
+            }
+            groups[dateKey].tasks.push(task);
+            groups[dateKey].totalHours += task.hours;
+        });
+
+        // Sort by date (newest first)
+        return Object.values(groups).sort((a: TaskGroup, b: TaskGroup) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+    }, [tasks]);
+
+    const formik = useFormik<TaskFormValues>({
         initialValues: {
             title: "",
             date: "",
             hours: 0,
             typeOfWork: "",
             projects: "",
-            taskDocument: null as StrapiMedia | null,
+            taskDocument: null,
         },
         validationSchema: taskValidationSchema,
         enableReinitialize: false,
-        onSubmit: async (values) => {
+        onSubmit: async (values: TaskFormValues) => {
             if (isCreating) {
                 await handleCreateTask(values);
             } else if (selectedTask) {
@@ -70,16 +111,16 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
             }
         },
     });
-
+ 
     const handleCreateTask = async (values: any) => {
         try {
-            // console.log(values)
-            // return;
+
+
             const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
             let uploadedFileId = null;
 
-            // Step 1: Upload file to Strapi if attachment exists
+
             if (values.taskDocument && values.taskDocument instanceof File) {
                 const formData = new FormData();
                 formData.append('files', values.taskDocument);
@@ -105,7 +146,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 }
             }
 
-            // Step 2: Create task with the uploaded file ID
+
             const taskData = {
                 data: {
                     title: values.title,
@@ -125,7 +166,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 const newTotalHours = totalHours + values.hours;
                 const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
 
-                // Step 3: Update timesheet with new task relation
+
                 try {
                     const currentTaskIds = tasks.map(task => task.documentId);
                     const updatedTaskIds = [...currentTaskIds, taskId];
@@ -158,22 +199,20 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    // Also update handleUpdateTask to handle file uploads
-    const handleUpdateTask = async (values: any) => {
+    const handleUpdateTask = async (values: TaskFormValues): Promise<void> => {
         if (!selectedTask) return;
 
         try {
-            const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+            const STRAPI_BASE_URL: string = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
 
-            let uploadedFileId = null;
+            let uploadedFileId: number | null = null;
 
-            // Step 1: Upload new file if changed
             if (values.taskDocument && values.taskDocument instanceof File) {
                 const formData = new FormData();
                 formData.append('files', values.taskDocument);
 
                 try {
-                    const uploadResponse = await axios.post(
+                    const uploadResponse = await axios.post<Array<{ id: number }>>(
                         `${STRAPI_BASE_URL}/api/upload`,
                         formData,
                         {
@@ -193,12 +232,11 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                 }
             }
 
-            const oldHours = selectedTask.hours || 0;
-            const hourDifference = values.hours - oldHours;
-            const newTotalHours = totalHours + hourDifference;
-            const newWorkStatus = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
+            const oldHours: number = selectedTask.hours || 0;
+            const hourDifference: number = values.hours - oldHours;
+            const newTotalHours: number = totalHours + hourDifference;
+            const newWorkStatus: string = newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
 
-            // Step 2: Update task
             const updateData = {
                 data: {
                     title: values.title,
@@ -207,20 +245,18 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                     typeOfWork: values.typeOfWork,
                     projects: values.projects,
                     ...(uploadedFileId && { taskDocument: uploadedFileId }),
-                    // If taskDocument was removed (null) and no new file uploaded
                     ...(values.taskDocument === null && !uploadedFileId && { taskDocument: null }),
                 }
             };
 
-            const response = await axios.put(
+            const response = await axios.put<{ data: Task }>(
                 `${STRAPI_BASE_URL}/api/tasks/${selectedTask?.documentId}`,
                 updateData
             );
 
             if (response.data && response.data.data) {
-                const updatedTask = response.data.data;
+                const updatedTask: Task = response.data.data;
 
-                // Step 3: Update timesheet totals
                 await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${data?.documentId}`, {
                     data: {
                         totalHours: newTotalHours,
@@ -228,7 +264,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                     }
                 });
 
-                const updatedTasks = tasks.map(task =>
+                const updatedTasks: Task[] = tasks.map((task: Task) =>
                     task.documentId === selectedTask.documentId
                         ? { ...updatedTask, documentId: updatedTask.documentId }
                         : task
@@ -250,7 +286,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const handleEdit = () => {
+    const handleEdit = (): void => {
         if (selectedTask) {
             formik.setValues({
                 title: selectedTask.title,
@@ -265,7 +301,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const handleCreateNew = () => {
+    const handleCreateNew = (): void => {
         setIsCreating(true);
         setIsEditing(false);
         setSelectedTask(null);
@@ -279,7 +315,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         });
     };
 
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         formik.resetForm();
         setIsEditing(false);
         setIsCreating(false);
@@ -288,41 +324,30 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const handleTaskSelect = (task: Task) => {
+    const handleTaskSelect = (task: Task): void => {
         setSelectedTask(task);
         setIsEditing(false);
         setIsCreating(false);
         formik.resetForm();
     };
 
-    const handleDelete = async (timesheetId: string | number | null, taskId: string | number | null) => {
-        // if (!confirm("Are you sure you want to delete this task?") && taskId === null) {
-        //     return;
-        // }
-
+    const handleDelete = async (timesheetId: string | number | null, taskId: string | number | null): Promise<void> => {
         try {
-            const STRAPI_BASE_URL = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
+            const STRAPI_BASE_URL: string = process.env.NEXT_PUBLIC_STRAPI_URL || "http://localhost:1337";
             await axios.delete(`${STRAPI_BASE_URL}/api/tasks/${taskId}`);
 
-
-            const taskToDelete = tasks.find(task => task.documentId === taskId);
-
-
-            const updatedTasks = tasks.filter(task => task.documentId !== taskId);
+            const taskToDelete: Task | undefined = tasks.find((task: Task) => task.documentId === taskId);
+            const updatedTasks: Task[] = tasks.filter((task: Task) => task.documentId !== taskId);
             setTasks(updatedTasks);
 
-
             if (taskToDelete) {
-                const newTotalHours = totalHours - (taskToDelete.hours || 0);
+                const newTotalHours: number = totalHours - (taskToDelete.hours || 0);
                 setTotalHours(newTotalHours);
 
-                const newWorkStatus = newTotalHours === 0 ? "MISSING" : newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
+                const newWorkStatus: string = newTotalHours === 0 ? "MISSING" : newTotalHours >= 40 ? "COMPLETED" : "INCOMPLETE";
                 setWorkStatus(newWorkStatus);
 
                 try {
-
-
-
                     await axios.put(`${STRAPI_BASE_URL}/api/timesheets/${timesheetId}`, {
                         data: {
                             totalHours: newTotalHours,
@@ -331,11 +356,8 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                     });
                 } catch (updateError) {
                     console.error("Error updating timesheet relation:", updateError);
-
                 }
-
             }
-
 
             if (selectedTask?.documentId === taskId) {
                 setSelectedTask(null);
@@ -349,13 +371,12 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const getDefaultDate = () => {
-
+    const getDefaultDate = (): string => {
         const today = new Date();
         return today.toISOString().split('T')[0];
     };
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: string): string => {
         switch (status.toUpperCase()) {
             case "COMPLETED":
                 return "bg-emerald-100 text-emerald-700 border-emerald-200";
@@ -368,13 +389,13 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const getWorkTypeLabel = (type: string) => {
-        return type.split('_').map(word =>
+    const getWorkTypeLabel = (type: string): string => {
+        return type.split('_').map((word: string) =>
             word.charAt(0) + word.slice(1).toLowerCase()
         ).join(' ');
     };
 
-    const getWorkTypeColor = (type: string) => {
+    const getWorkTypeColor = (type: string): string => {
         switch (type) {
             case "FEATURE_DEVELOPMENT":
                 return "bg-blue-100 text-blue-700";
@@ -395,7 +416,7 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         }
     };
 
-    const formatDate = (dateString: string) => {
+    const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             weekday: 'short',
@@ -405,12 +426,20 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
         });
     };
 
-    const formatDateForInput = (dateString: string) => {
+    const formatDateHeader = (dateString: string): string => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    const formatDateForInput = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toISOString().split('T')[0];
     };
 
-    const handleBack = () => {
+    const handleBack = (): void => {
         if (typeof window !== 'undefined') {
             window.history.back();
         }
@@ -492,42 +521,57 @@ export default function TimesheetDetails({ data, week, year, error }: TimesheetD
                             </button>
                         </div>
 
-                        {tasks.length > 0 ? (
-                            tasks.map((task) => (
-                                <div
-                                    key={task.id || task.documentId}
-                                    onClick={() => handleTaskSelect(task)}
-                                    className={`bg-white rounded-lg border-2 p-5 cursor-pointer transition-all hover:shadow-md ${selectedTask?.documentId === task.documentId
-                                        ? "border-blue-500 shadow-md"
-                                        : "border-gray-200 hover:border-gray-300"
-                                        }`}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h3 className="font-semibold text-gray-900 text-lg flex-1 pr-2">
-                                            {task.title}
-                                        </h3>
-                                        <span className="flex items-center gap-1 text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
-                                            <Clock className="w-3 h-3" />
-                                            {task.hours}h
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 text-sm text-gray-600 mb-3">
-                                        <div className="flex items-center gap-1">
-                                            <Calendar className="w-3 h-3" />
-                                            <span>{formatDate(task.date)}</span>
+                        {groupedTasks.length > 0 ? (
+                            groupedTasks.map((group: TaskGroup) => (
+                                <div key={group.date} className="space-y-3">
+                                    
+                                    <div className="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-lg font-bold text-gray-900">
+                                                {formatDateHeader(group.date)}
+                                            </span>
+                                            <span className="text-sm text-gray-500">
+                                                {group.tasks.length} task{group.tasks.length !== 1 ? 's' : ''}
+                                            </span>
                                         </div>
+                                        <span className="text-sm font-semibold text-blue-600">
+                                            {group.totalHours}h total
+                                        </span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${getWorkTypeColor(task.typeOfWork)}`}>
-                                            <Briefcase className="w-3 h-3" />
-                                            {getWorkTypeLabel(task.typeOfWork)}
-                                        </span>
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                                            <FileText className="w-3 h-3" />
-                                            {task.projects.replace(/_/g, ' ')}
-                                        </span>
+                                    
+                                    <div className="space-y-3 pl-2">
+                                        {group.tasks.map((task: Task) => (
+                                            <div
+                                                key={task.id || task.documentId}
+                                                onClick={() => handleTaskSelect(task)}
+                                                className={`bg-white rounded-lg border-2 p-5 cursor-pointer transition-all hover:shadow-md ${selectedTask?.documentId === task.documentId
+                                                    ? "border-blue-500 shadow-md"
+                                                    : "border-gray-200 hover:border-gray-300"
+                                                    }`}
+                                            >
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="font-semibold text-gray-900 text-lg flex-1 pr-2">
+                                                        {task.title}
+                                                    </h3>
+                                                    <span className="flex items-center gap-1 text-sm font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap">
+                                                        <Clock className="w-3 h-3" />
+                                                        {task.hours}h
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${getWorkTypeColor(task.typeOfWork)}`}>
+                                                        <Briefcase className="w-3 h-3" />
+                                                        {getWorkTypeLabel(task.typeOfWork)}
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                                        <FileText className="w-3 h-3" />
+                                                        {task.projects.replace(/_/g, ' ')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))
